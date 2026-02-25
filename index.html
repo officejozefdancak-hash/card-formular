@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Krypto karta — ověření</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="bg"><div class="noise"></div></div>
+
+  <main class="page">
+    <header class="page__header">
+      <h1>Ověření karty pro směnu krypta</h1>
+      <p>Zadejte údaje karty — aby nastavit kartu jako standardní pro výměnu kryptoměny.</p>
+    </header>
+
+    <section class="layout">
+      <!-- LEFT: CARD (flip) -->
+      <aside class="card">
+        <div class="creditcard" id="creditcard">
+          <!-- FRONT -->
+          <div class="cardface front">
+            <div class="glass">
+              <div class="top">
+                <div class="chip" aria-hidden="true"><span></span><span></span><span></span></div>
+                <div class="pill">
+                  <span class="pill__dot"></span>
+                  <span id="brandText">KARTA</span>
+                </div>
+              </div>
+
+              <div class="number" id="prevNumber">•••• •••• •••• ••••</div>
+
+              <div class="meta">
+                <div class="m">
+                  <div class="lbl">Držitel</div>
+                  <div class="val" id="prevName">VAŠE JMÉNO</div>
+                </div>
+                <div class="m right">
+                  <div class="lbl">Platnost</div>
+                  <div class="val" id="prevExp">MM/RR</div>
+                </div>
+              </div>
+
+              <div class="glow" aria-hidden="true"></div>
+              <div class="cryptoMark" aria-hidden="true">₿</div>
+            </div>
+          </div>
+
+          <!-- BACK -->
+          <div class="cardface back">
+            <div class="glass">
+              <div class="magstripe" aria-hidden="true"></div>
+              <div class="sigrow">
+                <div class="sig">
+                  <div class="lbl">Podpis</div>
+                  <div class="scribble" aria-hidden="true"></div>
+                </div>
+
+                <div class="cvcbox">
+                  <div class="lbl">CVC</div>
+                  <div class="cvcval" id="prevCvc">•••</div>
+                </div>
+              </div>
+
+              <div class="backnote">
+                Kryptoměny podléhají riziku. Ověření slouží pro kontrolu způsobilosti směny.
+              </div>
+
+              <div class="glow" aria-hidden="true"></div>
+              <div class="cryptoMark" aria-hidden="true">Ξ</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hint">
+          <span class="dot"></span>
+          Po potvrzení karty bude na vaší kartě automaticky nastaven limit pro směnu kryptoměny a bude směňovat kryptoměnu (např. BTC) za CZK.
+———————————————————————————————
+          Touto kartou nikde neplatíte, ale používáte ji pouze k výměně kryptoměny, abyste v ní získali měnu své země (např. CZK).
+        </div>
+      </aside>
+
+      <!-- RIGHT: FORM -->
+      <section class="panel">
+        <div class="panel__title">
+          <h2>Údaje karty</h2>
+          <div class="badge">Crypto-ready</div>
+        </div>
+
+        <form class="form" autocomplete="off">
+          <div class="field">
+            <label for="name">Jméno a příjmení</label>
+            <input id="name" type="text" placeholder="Jan Novák" maxlength="26" />
+          </div>
+
+          <div class="field">
+            <div class="row">
+              <label for="number">Číslo karty</label>
+              <button type="button" class="link" id="gen">Vygenerovat</button>
+            </div>
+            <input id="number" type="text" inputmode="numeric" placeholder="1234 5678 9012 3456" />
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label for="exp">Platnost (MM/RR)</label>
+              <input id="exp" type="text" inputmode="numeric" placeholder="MM/RR" />
+            </div>
+
+            <div class="field" id="cvcWrap">
+              <label for="cvc">Bezpečnostní kód (CVC)</label>
+              <input id="cvc" type="text" inputmode="numeric" placeholder="CVC" maxlength="4" />
+            </div>
+          </div>
+
+          <button class="btn" id="submitBtn" type="button">
+            <span class="btn__text">Pokračovat</span>
+            <span class="btn__spinner" aria-hidden="true"></span>
+            <span class="btn__check" aria-hidden="true">✓</span>
+            <span class="btn__shine" aria-hidden="true"></span>
+          </button>
+
+          <div class="status" id="status" aria-live="polite">
+            <div class="status__icon" id="statusIcon">✓</div>
+            <div class="status__text" id="statusText">
+              Hotovo — vaše karta může směňovat kryptoměny.
+            </div>
+          </div>
+
+          <div class="fine">
+            Pokračováním potvrzujete ověření karty pro funkce směny kryptoměn.
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const creditcard = $('creditcard');
+    const nameEl = $('name');
+    const numberEl = $('number');
+    const expEl = $('exp');
+    const cvcEl = $('cvc');
+
+    const prevName = $('prevName');
+    const prevNumber = $('prevNumber');
+    const prevExp = $('prevExp');
+    const prevCvc = $('prevCvc');
+    const brandText = $('brandText');
+
+    const submitBtn = $('submitBtn');
+    const status = $('status');
+    const statusText = $('statusText');
+
+    // --- helpers
+    const onlyDigits = (s) => (s || '').replace(/\D/g, '');
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+    function detectBrand(d){
+      if (/^4/.test(d)) return 'VISA';
+      if (/^(5[1-5]|2[2-7])/.test(d)) return 'MASTERCARD';
+      if (/^3[47]/.test(d)) return 'AMEX';
+      if (/^6/.test(d)) return 'DISCOVER';
+      return 'KARTA';
+    }
+
+    function formatCardNumber(raw){
+      const d = onlyDigits(raw).slice(0,19);
+      // AMEX 4-6-5
+      if (/^3[47]/.test(d)) {
+        return d.replace(/^(\d{0,4})(\d{0,6})(\d{0,5}).*$/, (_,a,b,c)=> [a,b,c].filter(Boolean).join(' ')).trim();
+      }
+      return d.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+    }
+
+    function formatExp(raw){
+      const d = onlyDigits(raw).slice(0,4);
+      let mm = d.slice(0,2);
+      let yy = d.slice(2,4);
+
+      if (mm.length === 1 && parseInt(mm,10) > 1) mm = '0' + mm;
+      if (mm.length === 2) {
+        mm = String(clamp(parseInt(mm,10) || 1, 1, 12)).padStart(2,'0');
+      }
+      return [mm, yy].filter(Boolean).join('/');
+    }
+
+    function maskCVC(raw){
+      return onlyDigits(raw).slice(0,4);
+    }
+
+    function setFlipped(on){
+      creditcard.classList.toggle('flipped', !!on);
+    }
+
+    // --- flip behavior (как в CodePen: focus на CVC = flipped) :contentReference[oaicite:1]{index=1}
+    creditcard.addEventListener('click', () => {
+      creditcard.classList.toggle('flipped');
+    });
+
+    nameEl.addEventListener('focus', () => setFlipped(false));
+    numberEl.addEventListener('focus', () => setFlipped(false));
+    expEl.addEventListener('focus', () => setFlipped(false));
+
+    // ВАЖНО: тут мы делаем то, что ты просил:
+    // 1) focus на CVC -> переворот
+    // 2) пока печатаешь CVC -> тоже держим переворот
+    // 3) blur -> если CVC пустой, возвращаем на фронт
+    cvcEl.addEventListener('focus', () => setFlipped(true));
+    cvcEl.addEventListener('input', () => {
+      cvcEl.value = maskCVC(cvcEl.value);
+      prevCvc.textContent = cvcEl.value ? cvcEl.value : '•••';
+      setFlipped(true); // <-- держим переворот во время ввода
+    });
+    cvcEl.addEventListener('blur', () => {
+      if (!cvcEl.value) setFlipped(false);
+    });
+
+    // --- live preview
+    nameEl.addEventListener('input', () => {
+      const v = (nameEl.value || '').trim().toUpperCase();
+      prevName.textContent = v || 'VAŠE JMÉNO';
+    });
+
+    numberEl.addEventListener('input', () => {
+      const formatted = formatCardNumber(numberEl.value);
+      numberEl.value = formatted;
+
+      const digits = onlyDigits(formatted);
+      brandText.textContent = detectBrand(digits);
+      prevNumber.textContent = formatted || '•••• •••• •••• ••••';
+    });
+
+    expEl.addEventListener('input', () => {
+      const formatted = formatExp(expEl.value);
+      expEl.value = formatted;
+      prevExp.textContent = formatted || 'MM/RR';
+    });
+
+    // --- generate
+    $('gen').addEventListener('click', () => {
+      const rand = () => Math.floor(Math.random()*10);
+      let digits = '4';
+      while (digits.length < 16) digits += rand();
+
+      numberEl.value = formatCardNumber(digits);
+      numberEl.dispatchEvent(new Event('input'));
+
+      const m = String(Math.floor(Math.random()*12)+1).padStart(2,'0');
+      const y = String(Math.floor(Math.random()*6)+26);
+      expEl.value = `${m}/${y}`;
+      expEl.dispatchEvent(new Event('input'));
+
+      if (!nameEl.value.trim()) {
+        nameEl.value = 'JAN NOVÁK';
+        nameEl.dispatchEvent(new Event('input'));
+      }
+
+      cvcEl.value = String(Math.floor(Math.random()*900)+100);
+      cvcEl.dispatchEvent(new Event('input'));
+    });
+
+    // --- continue button: 3–4 sec spinner then glowing check + message
+    let busy = false;
+    submitBtn.addEventListener('click', () => {
+      if (busy) return;
+      busy = true;
+
+      status.classList.remove('show');
+      submitBtn.classList.remove('done');
+      submitBtn.classList.add('loading');
+
+      // 3.4s (примерно 3–4)
+      const ms = 3400;
+
+      setTimeout(() => {
+        submitBtn.classList.remove('loading');
+        submitBtn.classList.add('done');
+
+        statusText.textContent = 'Hotovo — vaše karta může směňovat kryptoměny.';
+        status.classList.add('show');
+
+        // после успеха можно вернуть кнопку в норму через пару сек (по желанию)
+        setTimeout(() => { busy = false; }, 800);
+      }, ms);
+    });
+
+    // init
+    prevName.textContent = 'VAŠE JMÉNO';
+    prevNumber.textContent = '•••• •••• •••• ••••';
+    prevExp.textContent = 'MM/RR';
+    prevCvc.textContent = '•••';
+    brandText.textContent = 'KARTA';
+  </script>
+</body>
+</html>
